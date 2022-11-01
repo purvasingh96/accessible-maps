@@ -1,11 +1,13 @@
 {
   "homepage": "http:/purvasingh96.github.io/accessible-maps",
   "scripts": {
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d build",
-    "build": "react-scripts build",
+    "deploy": "gh-pages -d dist",
     "start": "webpack-dev-server --progress --hot --open",
     "start-local": "webpack-dev-server --env local --progress --hot --open"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/purvasingh96/accessible-maps.git"
   },
   "dependencies": {
     "@emotion/react": "11.4.1",
