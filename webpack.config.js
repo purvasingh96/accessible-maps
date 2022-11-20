@@ -2,8 +2,8 @@
 // delete the local development overrides at the bottom of this file
 
 // avoid destructuring for older Node version support
+const path = require('path');
 const resolve = require('path').resolve;
-const webpack = require('webpack');
 
 const config = {
   mode: 'development',
@@ -17,7 +17,9 @@ const config = {
   },
 
   output: {
-    library: 'App'
+    library: 'App',
+    path: path.resolve(__dirname, 'build'),
+    clean: true
   },
 
   resolve: {
@@ -41,12 +43,14 @@ const config = {
             loader: 'ts-loader'
           }
         ]
-      }
+      },
+      {
+        test: /\.(png|svg|jpg|jpeg|gif)$/i,
+        type: 'asset/resource'
+    }
     ]
   },
 
-  // Optional: Enables reading mapbox token from environment variable
-  plugins: [new webpack.EnvironmentPlugin({MapboxAccessToken: ''})]
 };
 
 // Enables bundling against src in this repo rather than the installed version

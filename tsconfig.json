@@ -1,11 +1,10 @@
 {
   "compilerOptions": {
-    "target": "es2020",
+    "target": "es2018",
     "jsx": "react",
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
     "moduleResolution": "node",
-    "module": "ES2020",
-    "sourceMap": true
+    "module": "ES2020"
   }
 }
