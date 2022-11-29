@@ -1,29 +1,26 @@
 import React from "react";
 import {createRoot} from 'react-dom/client';
 import Heatmap from "./Heatmap/heatmap";
-import { Routes, Route, BrowserRouter, Navigate} from "react-router-dom";
+import { Routes, Route, HashRouter as Router, Navigate} from "react-router-dom";
 import Navbarcustom from "./Navbar/navbar";
-import { DATA_URL_HEATMAP, DATA_URL_MAP1, DATA_URL_MAP2, DATA_URL_MAP3, DATA_URL_MAP4, GEOJSON_URL_HEATMAP, GEOJSON_URL_MAP1, GEOJSON_URL_MAP2, GEOJSON_URL_MAP3, GEOJSON_URL_MAP4, GEOJSON_URL_PLAYGROUND, IFRAME_URL_AUDIOM_MAP1, IFRAME_URL_AUDIOM_MAP2, IFRAME_URL_AUDIOM_MAP3, IFRAME_URL_AUDIOM_MAP4 } from "./constants/constants";
+import { BASE_PATH, DATA_URL_HEATMAP, DATA_URL_MAP1, DATA_URL_MAP2, DATA_URL_MAP3, DATA_URL_MAP4, GEOJSON_URL_HEATMAP, GEOJSON_URL_MAP1, GEOJSON_URL_MAP2, GEOJSON_URL_MAP3, GEOJSON_URL_MAP4, GEOJSON_URL_PLAYGROUND, IFRAME_URL_AUDIOM_MAP1, IFRAME_URL_AUDIOM_MAP2, IFRAME_URL_AUDIOM_MAP3, IFRAME_URL_AUDIOM_MAP4 } from "./constants/constants";
 import AccessibleTables from "./Tables/accessible-tables";
 import Playground from "./Playground/playground";
 import { Container } from "react-bootstrap";
 import Audiom from "./Audiom/audiom";
 
-
-
-
-
 function App() {
     console.log('inside app');
     return (
         <div>
-        <BrowserRouter>
+        <Router>
           <Navbarcustom/>
           <Routes>
-          <Route path="/" element={<Container fluid>Home page - Navigate to different maps and tables via navbar on top</Container>} />
-          <Route path="/maps/playground" 
+          <Route path="/" 
+          element={<Heatmap geojsonUrl={GEOJSON_URL_HEATMAP} dataUrl={DATA_URL_HEATMAP}/>} />
+          <Route path={"/maps/playground"} 
           element={<Playground geojsonUrl={GEOJSON_URL_PLAYGROUND}/>} />
-          <Route path="/maps/heatmap" 
+          <Route path={"/maps/heatmap"} 
           element={<Heatmap geojsonUrl={GEOJSON_URL_HEATMAP} dataUrl={DATA_URL_HEATMAP}/>} />
           <Route path="/maps/map1" 
           element={<Heatmap geojsonUrl={GEOJSON_URL_MAP1} dataUrl={DATA_URL_MAP1}/>} />
@@ -56,7 +53,7 @@ function App() {
             {/* 👇️ only match this when no other routes match */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-          </BrowserRouter>
+          </Router>
         </div>
         );
 }

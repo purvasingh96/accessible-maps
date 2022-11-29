@@ -9,8 +9,7 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import { COVIDStatisticsType } from '../Heatmap/generate-table-format';
-
-
+import { TableSortLabel } from '@mui/material';
 
 type AccessibleTablesProps={
     dataUrl: string;
@@ -18,9 +17,12 @@ type AccessibleTablesProps={
 
 
 function AccessibleTables(props: AccessibleTablesProps) {
-    const defaultHeaders: string[] = ['name', 'description'];
+    type order = 'asc' | 'desc';
+    const defaultHeaders: string[] = [];
     const [rows, setRows] = useState([]);
+    const [currCol, setCurrCol] = useState('cases');
     const [headers, setHeaders] = useState(defaultHeaders);
+    const [orderDirection, setOrderDirection] = useState('asc' as order);
 
     useEffect(() => {
       async function getData() {
@@ -41,13 +43,40 @@ function AccessibleTables(props: AccessibleTablesProps) {
       getData()
     }, [props]); // [] means just do this once, after initial render
     
+
+    const sortArray = (arr, property, orderBy) => {
+        switch(orderBy) {
+            case 'asc':
+                default:
+                    return arr.sort((a, b) => 
+                        a[property] > b[property] ? 1: b[property] > a[property] ? -1 : 0
+                    );
+
+            case 'desc':
+                return arr.sort((a, b) =>
+                    a[property] < b[property] ? 1 : b[property] < a[property] ? -1 : 0
+                )
+        }
+    }
+
+    const handleSortRequest = (property) => {
+        setCurrCol(property);
+        setRows(sortArray(rows, property, orderDirection));
+        orderDirection == 'asc' ? setOrderDirection('desc') : setOrderDirection('asc');
+    }
+    
     return (
         <Paper variant="outlined" sx={{ width: '70%', overflow: 'hidden' }}>
             <TableContainer sx={{ maxHeight: 1000 }}>
             <Table sx={{ minWidth: 1200, minHeight: 1000}} aria-label="Table format for COVID data">
             <TableHead>   
                 <TableRow>
-                    {headers.map((header) => (<TableCell>{header}</TableCell>))} 
+                    {headers.map((header) => (
+                    <TableCell onClick={() => handleSortRequest(header)}>
+                        <TableSortLabel active={header === currCol} direction={header == currCol ? orderDirection : 'asc'}>
+                            {header}
+                    </TableSortLabel>
+                    </TableCell>))} 
                 </TableRow>
             </TableHead>
             <TableBody>

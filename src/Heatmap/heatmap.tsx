@@ -1,6 +1,6 @@
 import * as React from 'react';
 import {useState, useEffect, useMemo, useRef, useCallback} from 'react';
-import ReactMap, {Source, Layer, GeolocateControl, FullscreenControl, NavigationControl, Popup, MapboxStyle, LayerProps} from 'react-map-gl';
+import ReactMap, {Source, Layer, GeolocateControl, FullscreenControl, NavigationControl, Marker, MapRef, MapboxStyle} from 'react-map-gl';
 import { format } from 'date-fns';
 import {
   scaleOrdinal, scaleQuantize
@@ -9,11 +9,37 @@ import { extent } from 'd3-array';
 import bbox from '@turf/bbox';
 import GeoMapControlPanel from './heatmap-control-panel';
 import { ACCESS_TOKEN } from '../constants/constants';
+import Pin from '../Utils/Pin/pin';
+import { Container } from 'react-bootstrap';
+import { Typography } from '@mui/material';
+import { Style } from 'mapbox-gl';
 
 
 type HeatMapProps = {
   geojsonUrl: string,
   dataUrl: string,
+}
+
+function getLatLong(coords): Number[]  {
+  
+  const points = coords[0];
+  //console.log(points);
+  if(points.length == 2) return points[0];
+
+  for(let i=0;i<points.length;i++){
+    if(points[i].length == 2) {
+      return points[i];
+    }
+  }
+}
+
+function getPinLocations(allData) {
+  if(allData.json){
+    let pinCoords: Number[][] = [];
+    allData.json.features.map((x) => pinCoords.concat(getLatLong(x.geometry.coordinates)))
+    return pinCoords;
+  }
+  
 }
 
 export default function Heatmap(props) {
@@ -38,7 +64,11 @@ const toLabel = (text) => {
   return shrunk.replace(/(Today)\s(\w+)/, '$2 $1');
 }
 
-  const [popupInfo, setPopupInfo] = useState(false);
+  const [zoomLatitude, setZoomLatitude] = useState(40);
+  const [zoomLongitude, setZoomLongitude] = useState(-100);
+  const [title, setTitle] = useState('');
+  const mapRef = useRef<MapRef>();
+
   const [hoverInfo, setHoverInfo] = useState(null);
   const [allData, setAllData] = useState({json: undefined, dimensionMap:undefined});
   const [dimension, setDimension] = useState({
@@ -46,6 +76,8 @@ const toLabel = (text) => {
     label: 'Cases',
     color: '#1f77b4',
   });
+
+  
   
   
 
@@ -61,11 +93,22 @@ const toLabel = (text) => {
   }, [props]);
   
   
-
   const data = useMemo(() => {
+   if(allData.json){
+     console.log(allData.json);
+      const zoomLong = allData.json.initialViewState[0];
+      const zoomLat = allData.json.initialViewState[1];
+      
+      setTitle(allData.json.name);
+      mapRef.current?.flyTo({center: [zoomLong, zoomLat], duration: 2000});
+      
+   }
     return allData;
+    
   }, [allData]);
-  
+
+
+
   
 
   const quantizeOpacity = (dimz) => {
@@ -102,15 +145,16 @@ const toLabel = (text) => {
 	};
 
   const onHover = useCallback(event => {
+    
     const {
       features,
+      lngLat: {lng, lat},
       point: {x, y}
     } = event;
     const hoveredFeature = features && features[0];
     
-    
     // prettier-ignore
-    setHoverInfo(hoveredFeature && {feature: hoveredFeature, x, y});
+    setHoverInfo(hoveredFeature && {feature: hoveredFeature, x, y, lng, lat});
     
   }, []);
 
@@ -139,7 +183,8 @@ const toLabel = (text) => {
         return dimensionsMap;
   };
 
-  let heatmapLayer, polyLayer;
+  let heatmapLayer, patternLayer;
+
 
 
   if(allData.dimensionMap) {
@@ -157,48 +202,43 @@ const toLabel = (text) => {
               'fill-opacity': quantizeOpacity(dimension)
             },
           }
+
   }
 
-   
 
-
-
-
-
-
-
-
-
-
-
-
+ 
+  
 
   return (
-      <ReactMap
-        initialViewState={{
-          latitude: 40,
-          longitude: -100,
-          zoom: 3
-        }}
-        style={{width: '90vw', height: '80vh'}}
-        
-        mapStyle="mapbox://styles/mapbox/light-v9"
-        mapboxAccessToken={MAPBOX_TOKEN}
-        interactiveLayerIds={['data', 'polygons-texture']}
-        onMouseMove={onHover}
-        renderWorldCopies={false}
-      >
-        
-        <GeolocateControl position="top-left" />
-        <FullscreenControl position="top-left" />
-        <NavigationControl position="top-left" />
+    <Container fluid>
+      <Typography variant="h6" aria-label={title}>
+          {title}
+        </Typography>
 
         {data.json &&  (
+          <ReactMap
+          ref={mapRef}
+          initialViewState={{
+            zoom: 1.5
+          }}
+          
+          style={{width: '90vw', height: '80vh'}}
+          mapStyle={"mapbox://styles/mapbox/light-v9"}
+          mapboxAccessToken={MAPBOX_TOKEN}
+          interactiveLayerIds={['data']}
+          onMouseMove={onHover}
+          renderWorldCopies={false}
+        >
+          
+          <GeolocateControl showUserHeading={true} position='top-left'/>
+          <FullscreenControl position="top-left" />
+          <NavigationControl position="top-left" />
           <div>
             <Source type="geojson" data={data.json}>
             <Layer 
             { ...heatmapLayer}
             />
+           
           </Source>
           {hoverInfo && dimension && (
 					<div
@@ -214,18 +254,12 @@ const toLabel = (text) => {
 							{allData.dimensionMap.get(dimension.value).label}:{' '}
 							{hoverInfo.feature.properties[dimension.value].toLocaleString()}
 						</div>
-						<div>
+						{/* <div>
 							Updated:{' '}
 							{format(hoverInfo.feature.properties.updated, 'MMM d yyyy')}
-						</div>
+						</div> */}
 					</div>
 				)}
-
-
-
-
-
-
 
 
           {dimension && <GeoMapControlPanel
@@ -241,9 +275,11 @@ const toLabel = (text) => {
 					/>}
 					
           </div>
+          </ReactMap>
 				)
       }
-      </ReactMap>
+      
+      </Container>
   );
 }
 

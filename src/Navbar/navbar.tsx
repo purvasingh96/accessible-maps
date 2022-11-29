@@ -1,6 +1,8 @@
+import { Typography } from '@mui/material';
 import * as React from 'react';
 import {Navbar, Nav, Container, NavDropdown} from 'react-bootstrap';
 import {LinkContainer} from 'react-router-bootstrap';
+import { BASE_PATH } from '../constants/constants';
 
 
 
@@ -8,17 +10,17 @@ const Navbarcustom = () => {
   return (
       <Navbar bg="light" expand="lg">
         <Container fluid>
-          <LinkContainer to="/">
-          <Navbar.Brand>Accessible Maps</Navbar.Brand>
+          <LinkContainer to={"/"}>
+          <Navbar.Brand><Typography variant="h5" aria-label="Accessible Maps">Accessible Maps</Typography></Navbar.Brand>
           </LinkContainer>
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
           <Navbar.Collapse id="basic-navbar-nav">
             <Nav className="mr-auto">
                 <NavDropdown title="Maps" id="navbarScrollingDropdown">
-                      <LinkContainer to="/maps/playground">
+                      <LinkContainer to={"/maps/playground"}>
                         <Nav.Link>Playground Map</Nav.Link>
                       </LinkContainer>
-                      <LinkContainer to="/maps/heatmap">
+                      <LinkContainer to={"/maps/heatmap"}>
                         <Nav.Link>Heat Map</Nav.Link>
                       </LinkContainer>
                       <LinkContainer to="/maps/map1">

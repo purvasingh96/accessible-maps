@@ -8,6 +8,7 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
+import { TableSortLabel } from '@mui/material';
 
 export type COVIDStatisticsType = {
     name: string,
@@ -33,10 +34,10 @@ type ConvertCSVToTableProps={
 
 
 function ConvertCSVToTable(props: ConvertCSVToTableProps) {
-    const defaultHeaders: string[] = ['name', 'description'];
+    type order = 'asc' | 'desc';
     const [rows, setRows] = useState([]);
-    const [headers, setHeaders] = useState(defaultHeaders);
-    const [propertyColumn, setPropertyColumn] = useState();
+    const [orderDirection, setOrderDirection] = useState('asc' as order);
+
 
     useEffect(() => {
       async function getData() {
@@ -50,11 +51,30 @@ function ConvertCSVToTable(props: ConvertCSVToTableProps) {
         const csv = decoder.decode(result.value) // the csv text
         const results = Papa.parse(csv, { header: true }) // object with { data, errors, meta }
         const rows = results.data; // array of objects
-        setHeaders(defaultHeaders.concat(props.name))
         setRows(rows as COVIDStatisticsType[]);
       }
       getData()
     }, []); // [] means just do this once, after initial render
+
+    const sortArray = (arr, property, orderBy) => {
+        switch(orderBy) {
+            case 'asc':
+                default:
+                    return arr.sort((a, b) => 
+                        a[property] > b[property] ? 1: b[property] > a[property] ? -1 : 0
+                    );
+
+            case 'desc':
+                return arr.sort((a, b) =>
+                    a[property] < b[property] ? 1 : b[property] < a[property] ? -1 : 0
+                )
+        }
+    }
+
+    const handleSortRequest = () => {
+        setRows(sortArray(rows, props.name, orderDirection));
+        orderDirection == 'asc' ? setOrderDirection('desc') : setOrderDirection('asc');
+    }
     
     return (
         <Paper variant="outlined" sx={{ width: '100%', overflow: 'hidden' }}>
@@ -62,7 +82,13 @@ function ConvertCSVToTable(props: ConvertCSVToTableProps) {
             <Table sx={{ minWidth: 500, minHeight: 500}} aria-label="Table format for COVID data">
             <TableHead>   
                 <TableRow>
-                    {headers.map((header) => (<TableCell>{header}</TableCell>))} 
+                    <TableCell>Name</TableCell>
+                    <TableCell>Description</TableCell>
+                    <TableCell onClick={handleSortRequest}>
+                        <TableSortLabel active={true} direction={orderDirection}>
+                            {props.name}
+                    </TableSortLabel>
+                    </TableCell>
                 </TableRow>
             </TableHead>
             <TableBody>
