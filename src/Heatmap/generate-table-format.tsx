@@ -61,12 +61,12 @@ function ConvertCSVToTable(props: ConvertCSVToTableProps) {
             case 'asc':
                 default:
                     return arr.sort((a, b) => 
-                        a[property] > b[property] ? 1: b[property] > a[property] ? -1 : 0
+                    Number(a[property]) > Number(b[property]) ? 1: Number(b[property]) > Number(a[property]) ? -1 : 0
                     );
 
             case 'desc':
                 return arr.sort((a, b) =>
-                    a[property] < b[property] ? 1 : b[property] < a[property] ? -1 : 0
+                Number(a[property]) < Number(b[property]) ? 1 : Number(b[property]) < Number(a[property]) ? -1 : 0
                 )
         }
     }
@@ -83,7 +83,6 @@ function ConvertCSVToTable(props: ConvertCSVToTableProps) {
             <TableHead>   
                 <TableRow>
                     <TableCell>Name</TableCell>
-                    <TableCell>Description</TableCell>
                     <TableCell onClick={handleSortRequest}>
                         <TableSortLabel active={true} direction={orderDirection}>
                             {props.name}
@@ -100,7 +99,6 @@ function ConvertCSVToTable(props: ConvertCSVToTableProps) {
                     <TableCell component="th" scope="row">
                     {row.name}
                     </TableCell>
-                    <TableCell align="left">{row.description}</TableCell>
                     <TableCell align="left">{row[props.name]}</TableCell>
                 </TableRow>
                 ))}

@@ -13,6 +13,7 @@ import Pin from '../Utils/Pin/pin';
 import { Container } from 'react-bootstrap';
 import { Typography } from '@mui/material';
 import { Style } from 'mapbox-gl';
+import { ClassNames } from '@emotion/react';
 
 
 type HeatMapProps = {
@@ -64,13 +65,14 @@ const toLabel = (text) => {
   return shrunk.replace(/(Today)\s(\w+)/, '$2 $1');
 }
 
-  const [zoomLatitude, setZoomLatitude] = useState(40);
-  const [zoomLongitude, setZoomLongitude] = useState(-100);
+  const [patternLayerVisibility, setPatternLayerVisibility] = useState('none');
   const [title, setTitle] = useState('');
   const mapRef = useRef<MapRef>();
 
   const [hoverInfo, setHoverInfo] = useState(null);
   const [allData, setAllData] = useState({json: undefined, dimensionMap:undefined});
+  const [heatMapLayer, setHeatMapLayer] = useState(null);
+  const [patternLayer, setPatternLayer] = useState(null);
   const [dimension, setDimension] = useState({
     value: "cases",
     label: 'Cases',
@@ -91,58 +93,120 @@ const toLabel = (text) => {
       .catch(err => console.error('Could not load data', err)); // eslint-disable-line
       
   }, [props]);
+
+
+  const quantizeProperty = (jsonData, dimz, property) => {
+		let domain = [];
+		let fillProperty;
+		jsonData.features.forEach((f) => {
+			domain.push(f.properties[dimz.value]);
+		});
+
+    // extent: calculates min and max in an array
+    if(property == "opacity"){
+      if (extent(domain)[0] === extent(domain)[1]) {
+        fillProperty = 0.2;
+      } else {
+        const opacity = scaleQuantize()
+          .domain(extent(domain))
+          .range([0.2, 0.35, 0.5, 0.65, 0.8]);
   
+          fillProperty = [
+          'step',
+          ['get', dimz.value],
+          0.1,
+          opacity.invertExtent(0.2)[0],
+          0.2,
+          opacity.invertExtent(0.35)[0],
+          0.35,
+          opacity.invertExtent(0.5)[0],
+          0.5,
+          opacity.invertExtent(0.65)[0],
+          0.65,
+          opacity.invertExtent(0.8)[0],
+          0.8,
+        ];
+      }
+    } else {
+      if (extent(domain)[0] === extent(domain)[1]) {
+        fillProperty = "tmpoly-plus-100-black";
+    } else {
+        const opacity = scaleQuantize()
+            .domain(extent(domain))
+            .range([0.2, 0.35, 0.5, 0.65, 0.8]);
+
+            fillProperty = [
+            'step',
+            ['get', dimz.value],
+            "tmpoly-plus-100-black",
+            opacity.invertExtent(0.2)[0],
+            "tmpoly-circle-light-100-black",
+            opacity.invertExtent(0.35)[0],
+            "tmpoly-grid-light-200-black",
+            opacity.invertExtent(0.5)[0],
+            "tmpoly-line-vertical-down-light-100-black",
+            opacity.invertExtent(0.65)[0],
+            "tmpoly-caret-200-black",
+            opacity.invertExtent(0.8)[0],
+            "tmpoly-caret-200-black",
+        ];
+      }
+    }
+		console.log("property: ", property, fillProperty);
+		return fillProperty;
+	};
   
   const data = useMemo(() => {
    if(allData.json){
      console.log(allData.json);
+
       const zoomLong = allData.json.initialViewState[0];
       const zoomLat = allData.json.initialViewState[1];
       
       setTitle(allData.json.name);
       mapRef.current?.flyTo({center: [zoomLong, zoomLat], duration: 2000});
-      
+
+      setHeatMapLayer({
+        id: 'data',
+        type: 'fill',
+        source: {
+          type:"geojson",
+          data: allData.json
+        },
+        paint: {
+          "fill-outline-color": "black",
+          'fill-color': allData.dimensionMap.get(dimension.value).color,
+          'fill-opacity': quantizeProperty(allData.json, dimension, "opacity")
+        },
+      });
+
+      setPatternLayer({
+        id: 'patternLayer',
+        type: 'fill',
+        source: {
+          type:"geojson",
+          data: allData.json
+        },
+        "layout": {
+          "visibility": patternLayerVisibility
+        },
+        paint: {
+          "fill-outline-color": "black",
+          'fill-color': allData.dimensionMap.get(dimension.value).color,
+          'fill-pattern': quantizeProperty(allData.json, dimension, "pattern")
+        },
+      }) 
    }
+
     return allData;
     
-  }, [allData]);
+  }, [allData, patternLayerVisibility, dimension]);
 
 
 
   
 
-  const quantizeOpacity = (dimz) => {
-		let domain = [];
-		let fillOpacity;
-		allData.json.features.forEach((f) => {
-			domain.push(f.properties[dimz.value]);
-		});
-
-    // extent: calculates min and max in an array
-		if (extent(domain)[0] === extent(domain)[1]) {
-			fillOpacity = 0.2;
-		} else {
-			const opacity = scaleQuantize()
-				.domain(extent(domain))
-				.range([0.2, 0.35, 0.5, 0.65, 0.8]);
-			fillOpacity = [
-				'step',
-				['get', dimz.value],
-				0.1,
-				opacity.invertExtent(0.2)[0],
-				0.2,
-				opacity.invertExtent(0.35)[0],
-				0.35,
-				opacity.invertExtent(0.5)[0],
-				0.5,
-				opacity.invertExtent(0.65)[0],
-				0.65,
-				opacity.invertExtent(0.8)[0],
-				0.8,
-			];
-		}
-		return fillOpacity;
-	};
+ 
 
   const onHover = useCallback(event => {
     
@@ -183,31 +247,45 @@ const toLabel = (text) => {
         return dimensionsMap;
   };
 
-  let heatmapLayer, patternLayer;
+  // let heatmapLayer, patternLayer;
 
 
 
-  if(allData.dimensionMap) {
-      heatmapLayer= 
-           {
-            id: 'data',
-            type: 'fill',
-            source: {
-              type:"geojson",
-              data: data.json
-            },
-            paint: {
-              "fill-outline-color": "black",
-              'fill-color': allData.dimensionMap.get(dimension.value).color,
-              'fill-opacity': quantizeOpacity(dimension)
-            },
-          }
+  // if(allData.dimensionMap) {
+  //     heatmapLayer= 
+  //          {
+  //           id: 'data',
+  //           type: 'fill',
+  //           source: {
+  //             type:"geojson",
+  //             data: data.json
+  //           },
+  //           paint: {
+  //             "fill-outline-color": "black",
+  //             'fill-color': allData.dimensionMap.get(dimension.value).color,
+  //             'fill-opacity': quantizeProperty(dimension, "opacity")
+  //           },
+  //         }
+      
+  //     patternLayer = {
+  //       id: 'patternLayer',
+  //       type: 'fill',
+  //       source: {
+  //         type:"geojson",
+  //         data: data.json
+  //       },
+  //       "layout": {
+  //         "visibility": patternLayerVisibility
+  //       },
+  //       paint: {
+  //         "fill-outline-color": "black",
+  //         'fill-color': allData.dimensionMap.get(dimension.value).color,
+  //         'fill-pattern': quantizeProperty(dimension, "pattern")
+  //       },
+  //     }
 
-  }
+  // }
 
-
- 
-  
 
   return (
     <Container fluid>
@@ -223,9 +301,9 @@ const toLabel = (text) => {
           }}
           
           style={{width: '90vw', height: '80vh'}}
-          mapStyle={"mapbox://styles/mapbox/light-v9"}
+          mapStyle={"mapbox://styles/purvasingh/clb2khfje000j14mjt6dwbau8"}
           mapboxAccessToken={MAPBOX_TOKEN}
-          interactiveLayerIds={['data']}
+          interactiveLayerIds={['data', 'patternLayer']}
           onMouseMove={onHover}
           renderWorldCopies={false}
         >
@@ -236,9 +314,11 @@ const toLabel = (text) => {
           <div>
             <Source type="geojson" data={data.json}>
             <Layer 
-            { ...heatmapLayer}
+            { ...heatMapLayer}
             />
-           
+           <Layer 
+            { ...patternLayer}
+            />
           </Source>
           {hoverInfo && dimension && (
 					<div
@@ -254,16 +334,12 @@ const toLabel = (text) => {
 							{allData.dimensionMap.get(dimension.value).label}:{' '}
 							{hoverInfo.feature.properties[dimension.value].toLocaleString()}
 						</div>
-						{/* <div>
-							Updated:{' '}
-							{format(hoverInfo.feature.properties.updated, 'MMM d yyyy')}
-						</div> */}
 					</div>
 				)}
 
 
           {dimension && <GeoMapControlPanel
-						name={"COVID-19 State-By-State Daily Statistic Heatmap Layer"}
+						name={"COVID-19 STATE-BY-STATE DAILY STATISTIC HEATMAP LAYER"}
 						dimensions={data.dimensionMap as Map<string, string>}
 						onChange={(e) => {
               setDimension({
@@ -271,6 +347,10 @@ const toLabel = (text) => {
                 label: allData.dimensionMap.get(e.toLocaleString()).label,
                 color: allData.dimensionMap.get(e.toLocaleString()).color,
               })}}
+              onChangeCheck={(e) => {
+                console.log("e: ", e);
+                e == true ? setPatternLayerVisibility('visible'): setPatternLayerVisibility('none');
+              }}
               dataUrl={props.dataUrl}
 					/>}
 					
