@@ -49,12 +49,12 @@ function AccessibleTables(props: AccessibleTablesProps) {
             case 'asc':
                 default:
                     return arr.sort((a, b) => 
-                        a[property] > b[property] ? 1: b[property] > a[property] ? -1 : 0
+                        Number(a[property]) > Number(b[property]) ? 1: Number(b[property]) > Number(a[property]) ? -1 : 0
                     );
 
             case 'desc':
                 return arr.sort((a, b) =>
-                    a[property] < b[property] ? 1 : b[property] < a[property] ? -1 : 0
+                    Number(a[property]) < Number(b[property]) ? 1 : Number(b[property]) < Number(a[property]) ? -1 : 0
                 )
         }
     }
@@ -88,19 +88,19 @@ function AccessibleTables(props: AccessibleTablesProps) {
                     <TableCell component="th" scope="row">
                     {row.name}
                     </TableCell>
-                    <TableCell align="left">{row.description}</TableCell>
-                    <TableCell align="left">{row.tests}</TableCell>
-                    <TableCell align="left">{row.cases}</TableCell>
-                    <TableCell align="left">{row.deaths}</TableCell>
-                    <TableCell align="left">{row.state}</TableCell>
-                    <TableCell align="left">{row.todayCases}</TableCell>
-                    <TableCell align="left">{row.todayDeaths}</TableCell>
-                    <TableCell align="left">{row.recovered}</TableCell>
-                    <TableCell align="left">{row.active}</TableCell>
-                    <TableCell align="left">{row.casesPerOneMillion}</TableCell>
-                    <TableCell align="left">{row.deathsPerOneMillion}</TableCell>
-                    <TableCell align="left">{row.testsPerOneMillion}</TableCell>
-                    <TableCell align="left">{row.population}</TableCell>
+                    {row.description && <TableCell align="left">{row.description}</TableCell>}
+                    {row.tests && <TableCell align="left">{row.tests}</TableCell>}
+                    {row.cases && <TableCell align="left">{row.cases}</TableCell>}
+                    {row.deaths && <TableCell align="left">{row.deaths}</TableCell>}
+                    {row.state && <TableCell align="left">{row.state}</TableCell>}
+                    {row.todayCases && <TableCell align="left">{row.todayCases}</TableCell>}
+                    {row.todayDeaths && <TableCell align="left">{row.todayDeaths}</TableCell>}
+                    {row.recovered && <TableCell align="left">{row.recovered}</TableCell>}
+                    {row.active && <TableCell align="left">{row.active}</TableCell>}
+                    {row.casesPerOneMillion && <TableCell align="left">{row.casesPerOneMillion}</TableCell>}
+                    {row.deathsPerOneMillion && <TableCell align="left">{row.deathsPerOneMillion}</TableCell>}
+                    {row.testsPerOneMillion && <TableCell align="left">{row.testsPerOneMillion}</TableCell>}
+                    {row.population &&<TableCell align="left">{row.population}</TableCell>}
                 </TableRow>
                 ))}
             </TableBody>
