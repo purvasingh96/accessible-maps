@@ -34,15 +34,6 @@ function getLatLong(coords): Number[]  {
   }
 }
 
-function getPinLocations(allData) {
-  if(allData.json){
-    let pinCoords: Number[][] = [];
-    allData.json.features.map((x) => pinCoords.concat(getLatLong(x.geometry.coordinates)))
-    return pinCoords;
-  }
-  
-}
-
 export default function Heatmap(props) {
 
 const MAPBOX_TOKEN = ACCESS_TOKEN;
@@ -89,17 +80,24 @@ const toLabel = (text) => {
       props.geojsonUrl
     )
       .then(resp => resp.json())
-      .then(json => setAllData({json:json, dimensionMap:splitDimensions(json)}))
+      .then(json => {
+        setAllData({json:json, dimensionMap:splitDimensions(json)}); 
+        setTitle(json.name);
+        mapRef.current?.flyTo({center: [json.initialViewState[0], json.initialViewState[1]], duration: 2000});
+      })
+      
+      
       .catch(err => console.error('Could not load data', err)); // eslint-disable-line
       
   }, [props]);
 
 
   const quantizeProperty = (jsonData, dimz, property) => {
+    console.log(dimz);
 		let domain = [];
 		let fillProperty;
 		jsonData.features.forEach((f) => {
-			domain.push(f.properties[dimz.value]);
+			domain.push(Number(f.properties[dimz.value]));
 		});
 
     // extent: calculates min and max in an array
@@ -110,21 +108,23 @@ const toLabel = (text) => {
         const opacity = scaleQuantize()
           .domain(extent(domain))
           .range([0.2, 0.35, 0.5, 0.65, 0.8]);
+          //fillProperty = opacity(domain);
   
           fillProperty = [
           'step',
           ['get', dimz.value],
           0.1,
-          opacity.invertExtent(0.2)[0],
+          Number(opacity.invertExtent(0.2)[0]),
           0.2,
-          opacity.invertExtent(0.35)[0],
+          Number(opacity.invertExtent(0.35)[0]),
           0.35,
-          opacity.invertExtent(0.5)[0],
+          Number(opacity.invertExtent(0.5)[0]),
           0.5,
-          opacity.invertExtent(0.65)[0],
+          Number(opacity.invertExtent(0.65)[0]),
           0.65,
-          opacity.invertExtent(0.8)[0],
-          0.8,
+          Number(opacity.invertExtent(0.8)[0]),
+          0.8
+          
         ];
       }
     } else {
@@ -158,14 +158,6 @@ const toLabel = (text) => {
   
   const data = useMemo(() => {
    if(allData.json){
-     console.log(allData.json);
-
-      const zoomLong = allData.json.initialViewState[0];
-      const zoomLat = allData.json.initialViewState[1];
-      
-      setTitle(allData.json.name);
-      mapRef.current?.flyTo({center: [zoomLong, zoomLat], duration: 2000});
-
       setHeatMapLayer({
         id: 'data',
         type: 'fill',
@@ -247,53 +239,15 @@ const toLabel = (text) => {
         return dimensionsMap;
   };
 
-  // let heatmapLayer, patternLayer;
-
-
-
-  // if(allData.dimensionMap) {
-  //     heatmapLayer= 
-  //          {
-  //           id: 'data',
-  //           type: 'fill',
-  //           source: {
-  //             type:"geojson",
-  //             data: data.json
-  //           },
-  //           paint: {
-  //             "fill-outline-color": "black",
-  //             'fill-color': allData.dimensionMap.get(dimension.value).color,
-  //             'fill-opacity': quantizeProperty(dimension, "opacity")
-  //           },
-  //         }
-      
-  //     patternLayer = {
-  //       id: 'patternLayer',
-  //       type: 'fill',
-  //       source: {
-  //         type:"geojson",
-  //         data: data.json
-  //       },
-  //       "layout": {
-  //         "visibility": patternLayerVisibility
-  //       },
-  //       paint: {
-  //         "fill-outline-color": "black",
-  //         'fill-color': allData.dimensionMap.get(dimension.value).color,
-  //         'fill-pattern': quantizeProperty(dimension, "pattern")
-  //       },
-  //     }
-
-  // }
-
+  
 
   return (
     <Container fluid>
-      <Typography variant="h6" aria-label={title}>
-          {title}
-        </Typography>
-
         {data.json &&  (
+          <>
+          <Typography variant="h6" aria-label={title}>
+            {title}
+          </Typography>
           <ReactMap
           ref={mapRef}
           initialViewState={{
@@ -336,8 +290,8 @@ const toLabel = (text) => {
 						</div>
 					</div>
 				)}
-
-
+          </div>
+          
           {dimension && <GeoMapControlPanel
 						name={"COVID-19 STATE-BY-STATE DAILY STATISTIC HEATMAP LAYER"}
 						dimensions={data.dimensionMap as Map<string, string>}
@@ -353,9 +307,8 @@ const toLabel = (text) => {
               }}
               dataUrl={props.dataUrl}
 					/>}
-					
-          </div>
           </ReactMap>
+          </>
 				)
       }
       
