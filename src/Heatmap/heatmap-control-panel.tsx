@@ -8,14 +8,14 @@ type GeoMapControlPanelProps = {
     name: String,
     dimensions: Map<string, string>,
     onChange: Function,
-	onChangeCheck: Function,
-	dataUrl: string
+	onChangeBorderWidth: Function,
+	dataUrl: string,
+	borderWidth: number
 }
 
 function GeoMapControlPanel(props: GeoMapControlPanelProps) {
 	const menuItems: any = [];
 	const [property, setProperty] = useState(props.dimensions.keys().next().value);
-	const [check, setCheck] = useState(false);
 	
 	
     props.dimensions.forEach((value: any, key: any) => {
@@ -28,16 +28,9 @@ function GeoMapControlPanel(props: GeoMapControlPanelProps) {
 		setProperty(eventTargetValue);
 	}
 
-	const handleCheckboxChange = (event: SelectChangeEvent) => {
-		const new_check = !check;
-		setCheck(new_check);
-		console.log("event.target.value: ", event.target.value);
-		props.onChangeCheck(new_check);
-	}
-
 	return (
 		<>
-		<div className="control-panel">
+		<div className="control-panel" style={{top:90, right:130}}>
 			<p className="title">{props.name}</p>
 			<FormControl fullWidth>
 				{/* <InputLabel shrink id="choose-stats-label">Choose a Statistic</InputLabel> */}
@@ -52,7 +45,18 @@ function GeoMapControlPanel(props: GeoMapControlPanelProps) {
 					{menuItems}
 				</Select>
 				<TableModal name={property} dataUrl={props.dataUrl}/>	
-				<FormControlLabel control={<input type={"checkbox"} checked={check} onChange={handleCheckboxChange} />} label="View Pattern Layer" />
+				{/* <FormControlLabel control={<input type={"checkbox"} checked={check} onChange={handleCheckboxChange} />} label="View Pattern Layer" /> */}
+				<div key={'borderWidth'} className="input">
+					<label>Border Width</label>
+					<input
+					type="range"
+					value={props.borderWidth}
+					min={1}
+					max={7}
+					step={1}
+					onChange={evt => props.onChangeBorderWidth(evt.target.value)}
+					/>
+				</div>
 			</FormControl>
 			
 		</div>

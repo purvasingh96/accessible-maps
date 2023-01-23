@@ -1,6 +1,6 @@
 import * as React from 'react';
 import {useState, useEffect, useMemo, useRef, useCallback} from 'react';
-import ReactMap, {Source, Layer, GeolocateControl, FullscreenControl, NavigationControl, Marker, MapRef, MapboxStyle} from 'react-map-gl';
+import ReactMap, {Source, Layer, GeolocateControl, FullscreenControl, NavigationControl, Marker, MapRef, MapboxStyle, useControl} from 'react-map-gl';
 import { format } from 'date-fns';
 import {
   scaleOrdinal, scaleQuantize
@@ -9,11 +9,14 @@ import { extent } from 'd3-array';
 import bbox from '@turf/bbox';
 import GeoMapControlPanel from './heatmap-control-panel';
 import { ACCESS_TOKEN } from '../constants/constants';
-import Pin from '../Utils/Pin/pin';
 import { Container } from 'react-bootstrap';
 import { Typography } from '@mui/material';
-import { Style } from 'mapbox-gl';
+import { Control, Style } from 'mapbox-gl';
 import { ClassNames } from '@emotion/react';
+import LegendControl, { LayersView } from 'mapboxgl-legend';
+import '../styles/mapbox-gl-export.css';
+import Color from 'color';
+
 
 
 type HeatMapProps = {
@@ -21,29 +24,37 @@ type HeatMapProps = {
   dataUrl: string,
 }
 
-function getLatLong(coords): Number[]  {
-  
-  const points = coords[0];
-  //console.log(points);
-  if(points.length == 2) return points[0];
-
-  for(let i=0;i<points.length;i++){
-    if(points[i].length == 2) {
-      return points[i];
-    }
-  }
-}
 
 export default function Heatmap(props) {
 
 const MAPBOX_TOKEN = ACCESS_TOKEN;
 const legendItems = ['_layerId', 'name', 'density', 'population','state','updated'];
 
+
 const colors = (specifier) => {
   var n = specifier.length / 6 | 0, colors = new Array(n), i = 0;
   while (i < n) colors[i] = "#" + specifier.slice(i * 6, ++i * 6);
   return colors;
 
+}
+
+function convertHex(hexCode, opacity = 1){
+  var hex = hexCode.replace('#', '');
+
+  if (hex.length === 3) {
+      hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+  }
+
+  var r = parseInt(hex.substring(0,2), 16),
+      g = parseInt(hex.substring(2,4), 16),
+      b = parseInt(hex.substring(4,6), 16);
+
+  /* Backward compatibility for whole number based opacity values. */
+  if (opacity > 1 && opacity <= 100) {
+      opacity = opacity / 100;   
+  }
+  
+  return 'rgba('+r+','+g+','+b+','+opacity+')';
 }
 
 const schemeCategory10 = colors("1f77b4ff7f0e2ca02cd627289467bd8c564be377c27f7f7fbcbd2217becf");
@@ -58,21 +69,23 @@ const toLabel = (text) => {
 
   const [patternLayerVisibility, setPatternLayerVisibility] = useState('none');
   const [title, setTitle] = useState('');
-  const mapRef = useRef<MapRef>();
+  
 
   const [hoverInfo, setHoverInfo] = useState(null);
   const [allData, setAllData] = useState({json: undefined, dimensionMap:undefined});
   const [heatMapLayer, setHeatMapLayer] = useState(null);
   const [patternLayer, setPatternLayer] = useState(null);
+  const [lineLayer, setLineLayer] = useState(null);
+  const [mapRef, setMapRef] = useState(null);
+  const [borderWidth, setBorderWidth] = useState(1);
+  
   const [dimension, setDimension] = useState({
     value: "cases",
     label: 'Cases',
     color: '#1f77b4',
   });
 
-  
-  
-  
+
 
   useEffect(() => {
     /* global fetch */
@@ -83,47 +96,72 @@ const toLabel = (text) => {
       .then(json => {
         setAllData({json:json, dimensionMap:splitDimensions(json)}); 
         setTitle(json.name);
-        mapRef.current?.flyTo({center: [json.initialViewState[0], json.initialViewState[1]], duration: 2000});
+        mapRef?.flyTo({center: [json.initialViewState[0], json.initialViewState[1]], duration: 2000});
+
+        if(allData){
+          const dataLegend = new LegendControl({
+            // Show all properties in selected layers
+            layers: {
+                'dataLayer': ['fill-color']
+            },
+            toggler: true
+          });
+        
+          const patternLegend = new LegendControl({
+            // Show all properties in selected layers
+            layers: {
+                'patternLayer': ['fill-pattern'],
+            },
+            toggler: true
+          });
+        
+          
+          mapRef?.addControl(patternLegend, "bottom-left");
+          mapRef?.addControl(dataLegend, "bottom-left");
+          
+        }
+        
       })
       
       
       .catch(err => console.error('Could not load data', err)); // eslint-disable-line
       
-  }, [props]);
+  }, [props, mapRef]);
 
-
-  const quantizeProperty = (jsonData, dimz, property) => {
-    console.log(dimz);
-		let domain = [];
+  
+  const quantizeProperty = (jsonData, dimz, property, color) => {
+		let domain : Array<number> = [];
 		let fillProperty;
 		jsonData.features.forEach((f) => {
-			domain.push(Number(f.properties[dimz.value]));
+      
+      let x = +f.properties[dimz.value];
+			domain.push(x);
 		});
 
+    
+
     // extent: calculates min and max in an array
-    if(property == "opacity"){
+    if(property == "color"){
       if (extent(domain)[0] === extent(domain)[1]) {
-        fillProperty = 0.2;
+        fillProperty = convertHex(color, 0.2);
       } else {
         const opacity = scaleQuantize()
           .domain(extent(domain))
           .range([0.2, 0.35, 0.5, 0.65, 0.8]);
-          //fillProperty = opacity(domain);
-  
           fillProperty = [
           'step',
           ['get', dimz.value],
-          0.1,
-          Number(opacity.invertExtent(0.2)[0]),
-          0.2,
-          Number(opacity.invertExtent(0.35)[0]),
-          0.35,
-          Number(opacity.invertExtent(0.5)[0]),
-          0.5,
-          Number(opacity.invertExtent(0.65)[0]),
-          0.65,
-          Number(opacity.invertExtent(0.8)[0]),
-          0.8
+          convertHex(color, 0.1),
+          opacity.invertExtent(0.2)[0],
+          convertHex(color, 0.2),
+          opacity.invertExtent(0.35)[0],
+          convertHex(color, 0.35),
+          opacity.invertExtent(0.5)[0],
+          convertHex(color, 0.5),
+          opacity.invertExtent(0.65)[0],
+          convertHex(color, 0.65),
+          opacity.invertExtent(0.8)[0],
+          convertHex(color, 0.8)
           
         ];
       }
@@ -152,14 +190,14 @@ const toLabel = (text) => {
         ];
       }
     }
-		console.log("property: ", property, fillProperty);
 		return fillProperty;
 	};
   
   const data = useMemo(() => {
    if(allData.json){
+    
       setHeatMapLayer({
-        id: 'data',
+        id: 'dataLayer',
         type: 'fill',
         source: {
           type:"geojson",
@@ -167,11 +205,11 @@ const toLabel = (text) => {
         },
         paint: {
           "fill-outline-color": "black",
-          'fill-color': allData.dimensionMap.get(dimension.value).color,
-          'fill-opacity': quantizeProperty(allData.json, dimension, "opacity")
+          'fill-color': quantizeProperty(allData.json, dimension, "color", allData.dimensionMap.get(dimension.value).color)
         },
       });
 
+  
       setPatternLayer({
         id: 'patternLayer',
         type: 'fill',
@@ -179,26 +217,35 @@ const toLabel = (text) => {
           type:"geojson",
           data: allData.json
         },
-        "layout": {
-          "visibility": patternLayerVisibility
-        },
+       
         paint: {
           "fill-outline-color": "black",
           'fill-color': allData.dimensionMap.get(dimension.value).color,
-          'fill-pattern': quantizeProperty(allData.json, dimension, "pattern")
+          'fill-pattern': quantizeProperty(allData.json, dimension, "pattern", 'none')
         },
-      }) 
+      }) ;
+
+      console.log('border width type: ', typeof borderWidth);
+      console.log('border width: ', borderWidth);
+
+      setLineLayer({
+        id: 'lineLayer',
+        type: 'line',
+        source: {
+          type:"geojson",
+          data: allData.json
+        },
+        paint: {
+          'line-color': '#000',
+          'line-width': Number(borderWidth)
+        },
+      });
+
    }
 
     return allData;
     
-  }, [allData, patternLayerVisibility, dimension]);
-
-
-
-  
-
- 
+  }, [allData, dimension, borderWidth]);
 
   const onHover = useCallback(event => {
     
@@ -212,10 +259,7 @@ const toLabel = (text) => {
     // prettier-ignore
     setHoverInfo(hoveredFeature && {feature: hoveredFeature, x, y, lng, lat});
     
-  }, []);
-
-
-  
+  }, []); 
 
   function splitDimensions(allData) {
       let index = 0;
@@ -241,6 +285,8 @@ const toLabel = (text) => {
 
   
 
+  
+
   return (
     <Container fluid>
         {data.json &&  (
@@ -249,21 +295,21 @@ const toLabel = (text) => {
             {title}
           </Typography>
           <ReactMap
-          ref={mapRef}
+          style={{border: '3px solid black', width: '90vw', height: '80vh', position: 'relative'}}
+          ref={(ref) => setMapRef(ref)}
           initialViewState={{
             zoom: 1.5
           }}
           
-          style={{width: '90vw', height: '80vh'}}
           mapStyle={"mapbox://styles/purvasingh/clb2khfje000j14mjt6dwbau8"}
           mapboxAccessToken={MAPBOX_TOKEN}
-          interactiveLayerIds={['data', 'patternLayer']}
+          interactiveLayerIds={['dataLayer', 'patternLayer']}
           onMouseMove={onHover}
           renderWorldCopies={false}
         >
-          
+         
           <GeolocateControl showUserHeading={true} position='top-left'/>
-          <FullscreenControl position="top-left" />
+          <FullscreenControl position="top-left"/>
           <NavigationControl position="top-left" />
           <div>
             <Source type="geojson" data={data.json}>
@@ -272,6 +318,9 @@ const toLabel = (text) => {
             />
            <Layer 
             { ...patternLayer}
+            />
+            <Layer
+            {...lineLayer}
             />
           </Source>
           {hoverInfo && dimension && (
@@ -292,6 +341,7 @@ const toLabel = (text) => {
 				)}
           </div>
           
+          </ReactMap>
           {dimension && <GeoMapControlPanel
 						name={"COVID-19 STATE-BY-STATE DAILY STATISTIC HEATMAP LAYER"}
 						dimensions={data.dimensionMap as Map<string, string>}
@@ -301,17 +351,13 @@ const toLabel = (text) => {
                 label: allData.dimensionMap.get(e.toLocaleString()).label,
                 color: allData.dimensionMap.get(e.toLocaleString()).color,
               })}}
-              onChangeCheck={(e) => {
-                console.log("e: ", e);
-                e == true ? setPatternLayerVisibility('visible'): setPatternLayerVisibility('none');
-              }}
+              onChangeBorderWidth={value => setBorderWidth(value)}
               dataUrl={props.dataUrl}
+              borderWidth={borderWidth}
 					/>}
-          </ReactMap>
           </>
 				)
       }
-      
       </Container>
   );
 }
