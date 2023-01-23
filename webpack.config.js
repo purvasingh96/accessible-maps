@@ -4,6 +4,8 @@
 // avoid destructuring for older Node version support
 const path = require('path');
 const resolve = require('path').resolve;
+const webpack = require('webpack');
+HtmlWebpackPlugin = require('html-webpack-plugin');
 
 const config = {
   mode: 'development',
@@ -61,6 +63,13 @@ const config = {
     ]
   },
 
+  // Optional: Enables reading mapbox token from environment variable
+  plugins: [
+    new webpack.EnvironmentPlugin({MapboxAccessToken: ''}),
+    new HtmlWebpackPlugin({
+      title: 'react-map-gl Example',
+    })
+  ]
 };
 
 // Enables bundling against src in this repo rather than the installed version
