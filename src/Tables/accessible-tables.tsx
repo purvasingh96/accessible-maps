@@ -49,12 +49,12 @@ function AccessibleTables(props: AccessibleTablesProps) {
             case 'asc':
                 default:
                     return arr.sort((a, b) => 
-                        Number(a[property]) > Number(b[property]) ? 1: Number(b[property]) > Number(a[property]) ? -1 : 0
+                       isNaN(Number(a[property])) ? (a[property] > b[property] ? 1 : b[property] > a[property] ? -1 : 0) : Number(a[property]) > Number(b[property]) ? 1: Number(b[property]) > Number(a[property]) ? -1 : 0
                     );
 
             case 'desc':
                 return arr.sort((a, b) =>
-                    Number(a[property]) < Number(b[property]) ? 1 : Number(b[property]) < Number(a[property]) ? -1 : 0
+                isNaN(Number(a[property])) ?  (a[property] < b[property] ? 1 : b[property] < a[property] ? -1 : 0) : Number(a[property]) < Number(b[property]) ? 1 : Number(b[property]) < Number(a[property]) ? -1 : 0
                 )
         }
     }
@@ -66,11 +66,20 @@ function AccessibleTables(props: AccessibleTablesProps) {
     }
     
     return (
-        <Paper variant="outlined" sx={{ width: '70%', overflow: 'hidden' }}>
-            <TableContainer sx={{ maxHeight: 1000 }}>
-            <Table sx={{ minWidth: 1200, minHeight: 1000}} aria-label="Table format for COVID data">
+        <Paper variant="outlined">
+            <TableContainer sx={{ maxHeight: 700 }}>
+            <Table stickyHeader sx={{ minWidth: 1200, minHeight: 1000}} aria-label="Table format for COVID data">
             <TableHead>   
-                <TableRow>
+                <TableRow
+                sx={{
+                    "& th": {
+                      fontSize: "1.5rem",
+                      color: "white",
+                      backgroundColor: "grey"
+                    }
+                  }}
+                
+                >
                     {headers.map((header) => (
                     <TableCell onClick={() => handleSortRequest(header)}>
                         <TableSortLabel active={header === currCol} direction={header == currCol ? orderDirection : 'asc'}>
@@ -92,7 +101,6 @@ function AccessibleTables(props: AccessibleTablesProps) {
                     {row.tests && <TableCell align="left">{row.tests}</TableCell>}
                     {row.cases && <TableCell align="left">{row.cases}</TableCell>}
                     {row.deaths && <TableCell align="left">{row.deaths}</TableCell>}
-                    {row.state && <TableCell align="left">{row.state}</TableCell>}
                     {row.todayCases && <TableCell align="left">{row.todayCases}</TableCell>}
                     {row.todayDeaths && <TableCell align="left">{row.todayDeaths}</TableCell>}
                     {row.recovered && <TableCell align="left">{row.recovered}</TableCell>}
