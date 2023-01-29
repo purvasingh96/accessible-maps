@@ -1,4 +1,7 @@
 {
+  "name": "visualmapper",
+  "version": "1.0.0",
+  "description": "A collection of visually accessible maps",
   "homepage": "http:/purvasingh96.github.io/accessible-maps",
   "scripts": {
     "start": "webpack-dev-server --progress --hot --open",
