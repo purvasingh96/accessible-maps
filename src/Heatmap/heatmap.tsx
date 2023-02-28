@@ -16,6 +16,8 @@ import { ClassNames } from '@emotion/react';
 import LegendControl, { LayersView } from 'mapboxgl-legend';
 import '../styles/mapbox-gl-export.css';
 import Color from 'color';
+import Pin from '../Utils/Pin/pin';
+import Pins from '../Utils/Pin/pins';
 
 
 
@@ -67,7 +69,6 @@ const toLabel = (text) => {
   return shrunk.replace(/(Today)\s(\w+)/, '$2 $1');
 }
 
-  const [patternLayerVisibility, setPatternLayerVisibility] = useState('none');
   const [title, setTitle] = useState('');
   
 
@@ -78,6 +79,7 @@ const toLabel = (text) => {
   const [lineLayer, setLineLayer] = useState(null);
   const [mapRef, setMapRef] = useState(null);
   const [borderWidth, setBorderWidth] = useState(1);
+
   
   const [dimension, setDimension] = useState({
     value: "cases",
@@ -96,6 +98,7 @@ const toLabel = (text) => {
       .then(json => {
         setAllData({json:json, dimensionMap:splitDimensions(json)}); 
         setTitle(json.name);
+        document.title = json.name;
         mapRef?.flyTo({center: [json.initialViewState[0], json.initialViewState[1]], duration: 2000});
 
         if(allData){
@@ -192,11 +195,11 @@ const toLabel = (text) => {
     }
 		return fillProperty;
 	};
-  
+ 
   const data = useMemo(() => {
    if(allData.json){
-    
-      setHeatMapLayer({
+
+    setHeatMapLayer({
         id: 'dataLayer',
         type: 'fill',
         source: {
@@ -225,8 +228,6 @@ const toLabel = (text) => {
         },
       }) ;
 
-      console.log('border width type: ', typeof borderWidth);
-      console.log('border width: ', borderWidth);
 
       setLineLayer({
         id: 'lineLayer',
@@ -323,7 +324,7 @@ const toLabel = (text) => {
             {...lineLayer}
             />
           </Source>
-          {hoverInfo && dimension && (
+          {/* {hoverInfo && dimension && (
 					<div
 						className="tooltip-custom"
 						style={{ left: hoverInfo.x, top: hoverInfo.y }}
@@ -338,12 +339,13 @@ const toLabel = (text) => {
 							{hoverInfo.feature.properties[dimension.value].toLocaleString()}
 						</div>
 					</div>
-				)}
+				)} */}
           </div>
-          
+          <Pins json={data.json} hoverInfo={hoverInfo} dimension={dimension}
+           dimensionMap={allData.dimensionMap}/>
           </ReactMap>
           {dimension && <GeoMapControlPanel
-						name={"COVID-19 STATE-BY-STATE DAILY STATISTIC HEATMAP LAYER"}
+						name={"COVID-19 STATE-BY-STATE DAILY STATISTIC"}
 						dimensions={data.dimensionMap as Map<string, string>}
 						onChange={(e) => {
               setDimension({
