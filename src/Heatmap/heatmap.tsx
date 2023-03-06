@@ -79,6 +79,8 @@ const toLabel = (text) => {
   const [lineLayer, setLineLayer] = useState(null);
   const [mapRef, setMapRef] = useState(null);
   const [borderWidth, setBorderWidth] = useState(1);
+  const [showToolTip, setShowToolTip] = useState(true);
+  const [showPopup, setShowPopup] = useState(false);
 
   
   const [dimension, setDimension] = useState({
@@ -324,7 +326,7 @@ const toLabel = (text) => {
             {...lineLayer}
             />
           </Source>
-          {/* {hoverInfo && dimension && (
+          {showToolTip==true && hoverInfo && dimension && (
 					<div
 						className="tooltip-custom"
 						style={{ left: hoverInfo.x, top: hoverInfo.y }}
@@ -339,10 +341,9 @@ const toLabel = (text) => {
 							{hoverInfo.feature.properties[dimension.value].toLocaleString()}
 						</div>
 					</div>
-				)} */}
+				)}
           </div>
-          <Pins json={data.json} hoverInfo={hoverInfo} dimension={dimension}
-           dimensionMap={allData.dimensionMap}/>
+          {showPopup==true && <Pins json={data.json}  dimension={dimension}/>}
           </ReactMap>
           {dimension && <GeoMapControlPanel
 						name={"COVID-19 STATE-BY-STATE DAILY STATISTIC"}
@@ -356,6 +357,10 @@ const toLabel = (text) => {
               onChangeBorderWidth={value => setBorderWidth(value)}
               dataUrl={props.dataUrl}
               borderWidth={borderWidth}
+              showToolTip={showToolTip}
+              showPopup={showPopup}
+              onChangeShowPopup={value => setShowPopup(value)}
+              onChangeShowToolTip={value => setShowToolTip(value)}
 					/>}
           </>
 				)

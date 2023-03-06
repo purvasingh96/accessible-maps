@@ -10,7 +10,11 @@ type GeoMapControlPanelProps = {
     onChange: Function,
 	onChangeBorderWidth: Function,
 	dataUrl: string,
-	borderWidth: number
+	borderWidth: number,
+	showToolTip: boolean,
+	showPopup: boolean,
+	onChangeShowToolTip: Function,
+	onChangeShowPopup: Function
 }
 
 function GeoMapControlPanel(props: GeoMapControlPanelProps) {
@@ -26,6 +30,16 @@ function GeoMapControlPanel(props: GeoMapControlPanelProps) {
 		const eventTargetValue = event.target.value;
 		props.onChange(eventTargetValue);
 		setProperty(eventTargetValue);
+	}
+
+	const handleTooltipChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+		const eventTargetValue = event.target.checked;
+		props.onChangeShowToolTip(eventTargetValue);
+	}
+
+	const handlePopupChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+		const eventTargetValue = event.target.checked;
+		props.onChangeShowPopup(eventTargetValue);
 	}
 
 	return (
@@ -45,7 +59,17 @@ function GeoMapControlPanel(props: GeoMapControlPanelProps) {
 					{menuItems}
 				</Select>
 				<TableModal name={property} dataUrl={props.dataUrl}/>	
-				{/* <FormControlLabel control={<input type={"checkbox"} checked={check} onChange={handleCheckboxChange} />} label="View Pattern Layer" /> */}
+				
+				<FormControlLabel 
+				control={<input type={"checkbox"} checked={props.showToolTip} 
+				onChange={handleTooltipChange} />} 
+				label="View data via tooltip" />
+
+				<FormControlLabel 
+				control={<input type={"checkbox"} checked={props.showPopup} 
+				onChange={handlePopupChange} />} 
+				label="View data via popups" />
+
 				<div key={'borderWidth'} className="input">
 					<label>Border Width</label>
 					<input

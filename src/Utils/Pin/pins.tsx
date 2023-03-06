@@ -5,8 +5,6 @@ import Pin from './pin';
 
 type pinsProps = {
     json:any;
-    hoverInfo:any;
-    dimensionMap:any;
     dimension:any;
 }
 
@@ -63,6 +61,7 @@ export default function Pins(props:pinsProps) {
               anchor="bottom"
                 onClick={e => {
                     e.originalEvent.stopPropagation();
+                    console.log(props.json);
                     setPopupInfo(coords);
                 }}
             >
@@ -76,21 +75,21 @@ export default function Pins(props:pinsProps) {
     return(
         <>
         {pins}
-        {popupInfo && props.hoverInfo && props.dimension && <Popup
+        {popupInfo && props.dimension && <Popup
         anchor='top'
         longitude={calculateCentroid(popupInfo.geometry.coordinates[0]).longitude}
         latitude={calculateCentroid(popupInfo.geometry.coordinates[0]).latitude}
         onClose={() => setPopupInfo(null)}
         >
         <div>
-            <div>State: {props.hoverInfo.feature.properties.name}</div>
+            <div>State: {popupInfo.properties.name}</div>
             <div>
                 Population:{' '}
-                {props.hoverInfo.feature.properties.population.toLocaleString()}
+                {popupInfo.properties.population.toLocaleString()}
             </div>
             <div>
-                {props.dimensionMap.get(props.dimension.value).label}:{' '}
-                {props.hoverInfo.feature.properties[props.dimension.value].toLocaleString()}
+                {props.dimension.value}:{' '}
+                {popupInfo.properties[props.dimension.value].toLocaleString()}
             </div>
         </div>
         </Popup>}
