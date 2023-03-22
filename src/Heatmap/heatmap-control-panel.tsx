@@ -44,11 +44,11 @@ function GeoMapControlPanel(props: GeoMapControlPanelProps) {
 
 	return (
 		<>
-		<div className="control-panel" style={{top:90, right:130}}>
+		<div className="control-panel" style={{top:0, right:0, position: 'absolute'}}>
 			<p className="title">{props.name}</p>
 			<FormControl fullWidth>
 				{/* <InputLabel shrink id="choose-stats-label">Choose a Statistic</InputLabel> */}
-				<Select
+				<Select	
 					labelId="outlined-choose-stats-label"
 					label="Choose a Statistic"
 					id="choose-stats"

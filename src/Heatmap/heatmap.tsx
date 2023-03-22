@@ -1,7 +1,9 @@
 import * as React from 'react';
 import {useState, useEffect, useMemo, useRef, useCallback} from 'react';
-import ReactMap, {Source, Layer, GeolocateControl, FullscreenControl, NavigationControl, Marker, MapRef, MapboxStyle, useControl} from 'react-map-gl';
+import ReactMap, {Source, Layer, GeolocateControl, FullscreenControl, NavigationControl, Marker, MapRef, MapboxStyle, useControl, MarkerDragEvent} from 'react-map-gl';
 import { format } from 'date-fns';
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+
 import {
   scaleOrdinal, scaleQuantize
 } from 'd3-scale'
@@ -11,7 +13,7 @@ import GeoMapControlPanel from './heatmap-control-panel';
 import { ACCESS_TOKEN } from '../constants/constants';
 import { Container } from 'react-bootstrap';
 import { Typography } from '@mui/material';
-import { Control, Style } from 'mapbox-gl';
+import { Control, LngLat, Style } from 'mapbox-gl';
 import { ClassNames } from '@emotion/react';
 import LegendControl, { LayersView } from 'mapboxgl-legend';
 import '../styles/mapbox-gl-export.css';
@@ -81,6 +83,35 @@ const toLabel = (text) => {
   const [borderWidth, setBorderWidth] = useState(1);
   const [showToolTip, setShowToolTip] = useState(true);
   const [showPopup, setShowPopup] = useState(false);
+  const [marker, setMarker] = useState({
+    latitude: 40,
+    longitude: -100
+  });
+  const history = useNavigate();
+  const location = useLocation();
+  
+  const [events, logEvents] = useState<Record<string, LngLat>>({});
+
+  const onMarkerDragStart = useCallback((event: MarkerDragEvent) => {
+    logEvents(_events => ({..._events, onDragStart: event.lngLat}));
+  }, []);
+
+  const onMarkerDrag = useCallback((event: MarkerDragEvent) => {
+    logEvents(_events => ({..._events, onDrag: event.lngLat}));
+
+    setMarker({
+      longitude: event.lngLat.lng,
+      latitude: event.lngLat.lat
+    });
+  }, []);
+
+  const onMarkerDragEnd = useCallback((event: MarkerDragEvent) => {
+    logEvents(_events => ({..._events, onDragEnd: event.lngLat}));
+    const searchParams = new URLSearchParams(location.search);
+    searchParams.set('lat', event.lngLat.lat.toString());
+    searchParams.set('lng', event.lngLat.lng.toString());
+    history({ search: searchParams.toString() });
+  }, []);
 
   
   const [dimension, setDimension] = useState({
@@ -104,10 +135,11 @@ const toLabel = (text) => {
         mapRef?.flyTo({center: [json.initialViewState[0], json.initialViewState[1]], duration: 2000});
 
         if(allData){
+          
           const dataLegend = new LegendControl({
             // Show all properties in selected layers
             layers: {
-                'dataLayer': ['fill-color']
+                'dataLayer': ['fill-color'],
             },
             toggler: true
           });
@@ -117,12 +149,12 @@ const toLabel = (text) => {
             layers: {
                 'patternLayer': ['fill-pattern'],
             },
-            toggler: true
+            toggler: true,
           });
         
-          
-          mapRef?.addControl(patternLegend, "bottom-left");
-          mapRef?.addControl(dataLegend, "bottom-left");
+        mapRef?.addControl(patternLegend, "bottom-right")
+
+        mapRef?.addControl(dataLegend, "bottom-right");
           
         }
         
@@ -265,6 +297,7 @@ const toLabel = (text) => {
   }, []); 
 
   function splitDimensions(allData) {
+    console.log(data.json);
       let index = 0;
       let dimensionsMap = new Map();
         Object.keys(allData.features[0].properties).forEach((d) => {
@@ -285,9 +318,10 @@ const toLabel = (text) => {
         }
         return dimensionsMap;
   };
-
-  
-
+//   const [query, setquery] = useState("");
+//   const [searchParams, setSearchParams] = useSearchParams({});
+// setSearchParams({ query: "events.target" })
+// setquery("events.target");
   
 
   return (
@@ -298,8 +332,8 @@ const toLabel = (text) => {
             {title}
           </Typography>
           <ReactMap
-          style={{border: '3px solid black', width: '90vw', height: '80vh', position: 'relative'}}
           ref={(ref) => setMapRef(ref)}
+          style={{border: '3px solid black', width: '90vw', height: '80vh', position:'relative', overflowY:'hidden'}}
           initialViewState={{
             zoom: 1.5
           }}
@@ -310,6 +344,34 @@ const toLabel = (text) => {
           onMouseMove={onHover}
           renderWorldCopies={false}
         >
+           <Marker
+            longitude={marker.longitude}
+            latitude={marker.latitude}
+            anchor="bottom"
+            draggable
+            onDragStart={onMarkerDragStart}
+            onDrag={onMarkerDrag}
+            onDragEnd={onMarkerDragEnd}
+        >
+          <Pin size={20} />
+        </Marker>
+          {dimension && <GeoMapControlPanel
+						name={"COVID-19 STATE-BY-STATE DAILY STATISTIC"}
+						dimensions={data.dimensionMap as Map<string, string>}
+						onChange={(e) => {
+              setDimension({
+                value: e.toLocaleString(),
+                label: allData.dimensionMap.get(e.toLocaleString()).label,
+                color: allData.dimensionMap.get(e.toLocaleString()).color,
+              })}}
+              onChangeBorderWidth={value => setBorderWidth(value)}
+              dataUrl={props.dataUrl}
+              borderWidth={borderWidth}
+              showToolTip={showToolTip}
+              showPopup={showPopup}
+              onChangeShowPopup={value => setShowPopup(value)}
+              onChangeShowToolTip={value => setShowToolTip(value)}
+					/>}
          
           <GeolocateControl showUserHeading={true} position='top-left'/>
           <FullscreenControl position="top-left"/>
@@ -345,23 +407,7 @@ const toLabel = (text) => {
           </div>
           {showPopup==true && <Pins json={data.json}  dimension={dimension}/>}
           </ReactMap>
-          {dimension && <GeoMapControlPanel
-						name={"COVID-19 STATE-BY-STATE DAILY STATISTIC"}
-						dimensions={data.dimensionMap as Map<string, string>}
-						onChange={(e) => {
-              setDimension({
-                value: e.toLocaleString(),
-                label: allData.dimensionMap.get(e.toLocaleString()).label,
-                color: allData.dimensionMap.get(e.toLocaleString()).color,
-              })}}
-              onChangeBorderWidth={value => setBorderWidth(value)}
-              dataUrl={props.dataUrl}
-              borderWidth={borderWidth}
-              showToolTip={showToolTip}
-              showPopup={showPopup}
-              onChangeShowPopup={value => setShowPopup(value)}
-              onChangeShowToolTip={value => setShowToolTip(value)}
-					/>}
+          
           </>
 				)
       }
